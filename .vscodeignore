@@ -1,8 +1,8 @@
 .vscode/**
+.github/**
 .gitignore
 .git/**
 src/**
 tsconfig.json
 **/*.map
-anyXML.png
 *.xml
