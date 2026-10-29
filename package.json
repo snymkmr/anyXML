@@ -1,0 +1,104 @@
+{
+  "name": "anyxml-tools",
+  "displayName": "AnyXML Tools",
+  "description": "Format and validate XML files in Visual Studio Code.",
+  "version": "0.0.9",
+  "publisher": "SanyamKumar",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Formatters", "Linters"],
+  "activationEvents": [
+    "onLanguage:xml",
+    "onCommand:anyxml.formatXml",
+    "onCommand:anyxml.oneLineXml",
+    "onCommand:anyxml.validateXml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "anyxml.formatXml",
+        "title": "AnyXML: Format XML Document"
+      },
+      {
+        "command": "anyxml.oneLineXml",
+        "title": "AnyXML: Convert XML to One Line"
+      },
+      {
+        "command": "anyxml.validateXml",
+        "title": "AnyXML: Validate XML"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "anyxml.formatXml",
+          "when": "editorLangId == xml || resourceExtname == .xml || resourceExtname == .xsd || resourceExtname == .xsl || resourceExtname == .xslt",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "anyxml.validateXml",
+          "when": "editorLangId == xml || resourceExtname == .xml || resourceExtname == .xsd || resourceExtname == .xsl || resourceExtname == .xslt",
+          "group": "1_modification@3"
+        },
+        {
+          "command": "anyxml.oneLineXml",
+          "when": "editorLangId == xml || resourceExtname == .xml || resourceExtname == .xsd || resourceExtname == .xsl || resourceExtname == .xslt",
+          "group": "1_modification@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "anyxml.formatXml",
+          "when": "resourceExtname == .xml || resourceExtname == .xsd || resourceExtname == .xsl || resourceExtname == .xslt",
+          "group": "2_workspace@1"
+        },
+        {
+          "command": "anyxml.validateXml",
+          "when": "resourceExtname == .xml || resourceExtname == .xsd || resourceExtname == .xsl || resourceExtname == .xslt",
+          "group": "2_workspace@3"
+        },
+        {
+          "command": "anyxml.oneLineXml",
+          "when": "resourceExtname == .xml || resourceExtname == .xsd || resourceExtname == .xsl || resourceExtname == .xslt",
+          "group": "2_workspace@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AnyXML Tools",
+      "properties": {
+        "anyxml.powershellExecutable": {
+          "type": "string",
+          "default": "",
+          "description": "PowerShell executable used for formatting and validation of files over 50 MiB. Leave empty to use pwsh (or powershell.exe on Windows)."
+        },
+        "anyxml.validateOnChange": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate XML after edits. Validation is debounced; disable this for very large documents if it slows editing."
+        },
+        "anyxml.validateOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate XML when a document is saved."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.5"
+  }
+}
