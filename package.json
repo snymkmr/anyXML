@@ -2,7 +2,7 @@
   "name": "anyxml-tools",
   "displayName": "AnyXML Tools",
   "description": "Format and validate XML files in Visual Studio Code.",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "publisher": "SanyamKumar",
   "repository": {
     "type": "git",
