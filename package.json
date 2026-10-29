@@ -101,12 +101,12 @@
     "vscode:prepublish": "npm run compile"
   },
   "dependencies": {
-    "@vscode/vsce": "^4.1.0",
     "fast-xml-parser": "^5.2.5"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^4.1.0",
     "typescript": "^5.4.5"
   }
 }
