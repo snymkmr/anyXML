@@ -3,19 +3,21 @@ param(
     [string]$InputFile = "",
     [string]$OutputFile = "",
     [switch]$Streaming = $false,
-    [switch]$OneLine = $false
+    [Alias("OneLine")]
+    [switch]$Minify = $false
 )
 
 function Format-XMLContent {
     param(
         [string]$xmlString,
-        [switch]$OneLine
+        [Alias("OneLine")]
+        [switch]$Minify
     )
 
     $xml = [xml]$xmlString
 
     $settings = New-Object System.Xml.XmlWriterSettings
-    $settings.Indent = -not $OneLine
+    $settings.Indent = -not $Minify
     $settings.IndentChars = "  "
     $settings.NewLineChars = "`n"
 
@@ -44,16 +46,17 @@ function Format-XMLContentStreaming {
     param(
         [string]$inputFilePath,
         [string]$outputFilePath,
-        [switch]$OneLine
+        [Alias("OneLine")]
+        [switch]$Minify
     )
 
     $readerSettings = New-Object System.Xml.XmlReaderSettings
     $readerSettings.ConformanceLevel = "Document"
-    $readerSettings.IgnoreWhitespace = [bool]$OneLine
+    $readerSettings.IgnoreWhitespace = [bool]$Minify
 
     $writerSettings = New-Object System.Xml.XmlWriterSettings
     $writerSettings.ConformanceLevel = [System.Xml.ConformanceLevel]::Document
-    $writerSettings.Indent = -not $OneLine
+    $writerSettings.Indent = -not $Minify
     $writerSettings.IndentChars = "  "
     $writerSettings.NewLineChars = "`n"
     $writerSettings.Encoding = [System.Text.UTF8Encoding]::new($false)
@@ -96,8 +99,26 @@ try {
 
     $inputPath = [System.IO.Path]::GetFullPath($InputFile)
     if ([string]::IsNullOrWhiteSpace($OutputFile)) {
-        $suffix = if ($OneLine) { "_oneline.xml" } else { "_formatted.xml" }
-        $OutputFile = [System.IO.Path]::GetFileNameWithoutExtension($inputPath) + $suffix
+        $inputDirectory = [System.IO.Path]::GetDirectoryName($inputPath)
+        $inputExtension = [System.IO.Path]::GetExtension($inputPath)
+        if ([string]::IsNullOrWhiteSpace($inputExtension)) {
+            $inputExtension = ".xml"
+        }
+        $inputStem = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
+        $baseStem = [System.Text.RegularExpressions.Regex]::Replace(
+            $inputStem,
+            '_(formatted|minified|oneline)(?:_\d+)?$',
+            '',
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+        )
+        $marker = if ($Minify) { "_minified" } else { "_formatted" }
+        $outputStem = $baseStem + $marker
+        $OutputFile = [System.IO.Path]::Combine($inputDirectory, $outputStem + $inputExtension)
+        $number = 0
+        while ([string]::Equals($inputPath, [System.IO.Path]::GetFullPath($OutputFile), [System.StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $OutputFile)) {
+            $number++
+            $OutputFile = [System.IO.Path]::Combine($inputDirectory, "${outputStem}_${number}${inputExtension}")
+        }
     }
     $outputPath = [System.IO.Path]::GetFullPath($OutputFile)
     if ([string]::Equals($inputPath, $outputPath, [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -123,21 +144,22 @@ try {
     }
 
     if ($Streaming) {
-        $action = if ($OneLine) { "compacting" } else { "formatting" }
+        $action = if ($Minify) { "minifying" } else { "formatting" }
         Write-Host "Reading and $action XML (streaming mode)..." -ForegroundColor Yellow
-        Format-XMLContentStreaming -inputFilePath $inputPath -outputFilePath $temporaryOutputPath -OneLine:$OneLine
+        Format-XMLContentStreaming -inputFilePath $inputPath -outputFilePath $temporaryOutputPath -Minify:$Minify
     } else {
         Write-Host "Reading XML file..." -ForegroundColor Yellow
         $xmlContent = Get-Content -LiteralPath $inputPath -Raw
 
-        $action = if ($OneLine) { "Compacting" } else { "Formatting" }
+        $action = if ($Minify) { "Minifying" } else { "Formatting" }
         Write-Host "$action XML..." -ForegroundColor Yellow
-        $formattedXml = Format-XMLContent -xmlString $xmlContent -OneLine:$OneLine
+        $formattedXml = Format-XMLContent -xmlString $xmlContent -Minify:$Minify
         [System.IO.File]::WriteAllText($temporaryOutputPath, $formattedXml, [System.Text.Encoding]::UTF8)
     }
 
     Move-Item -LiteralPath $temporaryOutputPath -Destination $outputPath -Force
-    Write-Host "Done! Formatted XML saved to: $outputPath" -ForegroundColor Green
+    $resultName = if ($Minify) { "Minified XML" } else { "Formatted XML" }
+    Write-Host "Done! $resultName saved to: $outputPath" -ForegroundColor Green
     exit 0
 }
 catch {

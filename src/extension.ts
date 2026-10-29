@@ -169,7 +169,7 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  const transformXmlCommand = async (resource: vscode.Uri | undefined, oneLine: boolean): Promise<void> => {
+  const transformXmlCommand = async (resource: vscode.Uri | undefined, minify: boolean): Promise<void> => {
     if (resource?.scheme === "file") {
       try {
         const stat = await fs.stat(resource.fsPath);
@@ -190,9 +190,9 @@ export function activate(context: vscode.ExtensionContext): void {
               return;
             }
 
-            const outputPath = await getTransformOutputPath(resource.fsPath, oneLine);
-            await runPowerShell(context.asAbsolutePath("formatXML.ps1"), resource.fsPath, outputPath, oneLine);
-            const action = oneLine ? "One-line copy" : "Formatted copy";
+            const outputPath = await getTransformOutputPath(resource.fsPath, minify);
+            await runPowerShell(context.asAbsolutePath("formatXML.ps1"), resource.fsPath, outputPath, minify);
+            const action = minify ? "Minified copy" : "Formatted copy";
             void vscode.window.showInformationMessage(`${action} saved to ${outputPath}`);
           } finally {
             pendingLargeFileValidation = undefined;
@@ -223,7 +223,7 @@ export function activate(context: vscode.ExtensionContext): void {
         (candidate) => candidate.document.uri.toString() === document!.uri.toString()
       ) ?? await vscode.window.showTextDocument(document);
       const version = document.version;
-      const formatted = await formatXml(document.getText(), context, oneLine);
+      const formatted = await formatXml(document.getText(), context, minify);
       if (document.version !== version) {
         throw new Error("The XML document changed while conversion was running. Run the command again.");
       }
@@ -364,7 +364,7 @@ export function deactivate(): void {
 async function formatXml(
   xml: string,
   context: vscode.ExtensionContext,
-  oneLine = false
+  minify = false
 ): Promise<string> {
   const validation = XMLValidator.validate(xml);
   if (validation !== true) {
@@ -375,12 +375,12 @@ async function formatXml(
 
   const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "anyxml-"));
   const inputPath = path.join(temporaryDirectory, "input.xml");
-  const outputPath = path.join(temporaryDirectory, oneLine ? "oneline.xml" : "formatted.xml");
+  const outputPath = path.join(temporaryDirectory, minify ? "minified.xml" : "formatted.xml");
   const scriptPath = context.asAbsolutePath("formatXML.ps1");
 
   try {
     await fs.writeFile(inputPath, xml, "utf8");
-    await runPowerShell(scriptPath, inputPath, outputPath, oneLine);
+    await runPowerShell(scriptPath, inputPath, outputPath, minify);
     return (await fs.readFile(outputPath, "utf8")).replace(/^\uFEFF/, "");
   } finally {
     await fs.rm(temporaryDirectory, { recursive: true, force: true });
@@ -391,7 +391,7 @@ function runPowerShell(
   scriptPath: string,
   inputPath: string,
   outputPath: string,
-  oneLine = false
+  minify = false
 ): Promise<void> {
   const executable = getPowerShellExecutable();
   const args = [
@@ -407,8 +407,8 @@ function runPowerShell(
     "-OutputFile",
     outputPath
   ];
-  if (oneLine) {
-    args.push("-OneLine");
+  if (minify) {
+    args.push("-Minify");
   }
 
   return new Promise((resolve, reject) => {
@@ -533,13 +533,14 @@ async function resolveXmlDocument(resource?: vscode.Uri): Promise<vscode.TextDoc
   return isXmlDocument(document) ? document : undefined;
 }
 
-async function getTransformOutputPath(inputPath: string, oneLine: boolean): Promise<string> {
+async function getTransformOutputPath(inputPath: string, minify: boolean): Promise<string> {
   const extension = path.extname(inputPath) || ".xml";
-  const stem = path.basename(inputPath, path.extname(inputPath));
+  const inputStem = path.basename(inputPath, path.extname(inputPath));
+  const stem = inputStem.replace(/_(?:formatted|minified|oneline)(?:_\d+)?$/i, "");
   const directory = path.dirname(inputPath);
 
   for (let suffix = 0; suffix < 1000; suffix++) {
-    const markerBase = oneLine ? "_oneline" : "_formatted";
+    const markerBase = minify ? "_minified" : "_formatted";
     const marker = suffix === 0 ? markerBase : `${markerBase}_${suffix}`;
     const candidate = path.join(directory, `${stem}${marker}${extension}`);
     try {
@@ -552,7 +553,7 @@ async function getTransformOutputPath(inputPath: string, oneLine: boolean): Prom
     }
   }
 
-  throw new Error("Could not choose a name for the formatted output file.");
+  throw new Error("Could not choose a name for the output file.");
 }
 
 function isXmlDocument(document: vscode.TextDocument | undefined): document is vscode.TextDocument {

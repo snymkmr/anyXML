@@ -31,7 +31,7 @@
       },
       {
         "command": "anyxml.oneLineXml",
-        "title": "AnyXML: Convert XML to One Line"
+        "title": "AnyXML: Minify XML Document"
       },
       {
         "command": "anyxml.validateXml",

@@ -11,7 +11,7 @@ Format and check XML documents in Visual Studio Code.
 For regular XML files, either right-click in the editor or right-click the file in Explorer. Choose:
 
 - **AnyXML: Format XML Document** to format the document. Large file conversions use streaming mode.
-- **AnyXML: Convert XML to One Line** to remove formatting whitespace and compact the document. For a regular open document, this replaces its contents; use Undo to reverse it.
+- **AnyXML: Minify XML Document** to remove formatting whitespace and compact the document. For a regular open document, this replaces its contents; use Undo to reverse it.
 - **AnyXML: Validate XML** to check that the document is well-formed. The first syntax error appears in the Problems panel.
 
 ### Large files
@@ -19,9 +19,9 @@ For regular XML files, either right-click in the editor or right-click the file 
 - VS Code cannot synchronize files over 50 MiB with extensions, so keep these files closed in the editor.
 - Right-click the file in Explorer to run a command directly from disk:
   - **AnyXML: Format XML Document** saves a separate `*_formatted.xml` copy.
-  - **AnyXML: Convert XML to One Line** saves a separate `*_oneline.xml` copy.
+  - **AnyXML: Minify XML Document** saves a separate `*_minified.xml` copy.
   - **AnyXML: Validate XML** checks the file and reports the first syntax error.
-- If an output name already exists, AnyXML adds a number. Formatting and one-line conversion leave the original unchanged.
+- If the source name already ends in `_formatted` or `_minified`, AnyXML reuses that base name instead of appending another marker. It also recognizes the older one-line suffix on files made with a previous version. If the destination already exists, AnyXML adds a number. Formatting and minifying leave the original unchanged.
 
 Validation shows a green or red result in the status bar and a message with the error location. VS Code cannot show editor diagnostics or live validation for these files because they cannot be opened in the editor.
 
