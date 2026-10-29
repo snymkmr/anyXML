@@ -4,6 +4,10 @@
   "description": "Format and validate XML files in Visual Studio Code.",
   "version": "0.0.9",
   "publisher": "SanyamKumar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/snymkmr/anyXML.git"
+  },
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.90.0"
