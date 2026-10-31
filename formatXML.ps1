@@ -9,20 +9,20 @@ param(
 
 function Format-XMLContent {
     param(
-        [string]$xmlString,
+        [string]$inputFilePath,
         [Alias("OneLine")]
         [switch]$Minify
     )
 
+    $xml = New-Object System.Xml.XmlDocument
     if ($Minify) {
         # Without a DTD or schema, whitespace-only nodes may be meaningful text
         # between elements. Preserve them so minifying does not change content.
-        $xml = New-Object System.Xml.XmlDocument
         $xml.PreserveWhitespace = $true
-        $xml.LoadXml($xmlString)
-    } else {
-        $xml = [xml]$xmlString
     }
+    # Loading the file directly lets the XML parser honor its BOM or declared
+    # encoding instead of decoding bytes with PowerShell's default text encoding.
+    $xml.Load($inputFilePath)
 
     $settings = New-Object System.Xml.XmlWriterSettings
     $settings.Indent = -not $Minify
@@ -159,11 +159,9 @@ try {
         Format-XMLContentStreaming -inputFilePath $inputPath -outputFilePath $temporaryOutputPath -Minify:$Minify
     } else {
         Write-Host "Reading XML file..." -ForegroundColor Yellow
-        $xmlContent = Get-Content -LiteralPath $inputPath -Raw
-
         $action = if ($Minify) { "Minifying" } else { "Formatting" }
         Write-Host "$action XML..." -ForegroundColor Yellow
-        $formattedXml = Format-XMLContent -xmlString $xmlContent -Minify:$Minify
+        $formattedXml = Format-XMLContent -inputFilePath $inputPath -Minify:$Minify
         [System.IO.File]::WriteAllText($temporaryOutputPath, $formattedXml, [System.Text.Encoding]::UTF8)
     }
 
