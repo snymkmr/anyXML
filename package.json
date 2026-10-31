@@ -3,7 +3,7 @@
   "displayName": "AnyXML",
   "description": "Format and validate XML files in Visual Studio Code.",
   "version": "0.1.3",
-  "publisher": "SanyamKumar",
+  "publisher": "Sanyam",
   "repository": {
     "type": "git",
     "url": "https://github.com/snymkmr/anyXML.git"
