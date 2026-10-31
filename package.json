@@ -1,5 +1,5 @@
 {
-  "name": "anyxml-tools",
+  "name": "anyxml",
   "displayName": "AnyXML",
   "description": "Format and validate XML files in Visual Studio Code.",
   "version": "0.1.3",
