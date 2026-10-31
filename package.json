@@ -1,8 +1,8 @@
 {
   "name": "anyxml-tools",
-  "displayName": "AnyXML Tools",
+  "displayName": "AnyXML",
   "description": "Format and validate XML files in Visual Studio Code.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "SanyamKumar",
   "repository": {
     "type": "git",
@@ -75,12 +75,12 @@
       ]
     },
     "configuration": {
-      "title": "AnyXML Tools",
+      "title": "AnyXML",
       "properties": {
         "anyxml.powershellExecutable": {
           "type": "string",
           "default": "",
-          "description": "PowerShell executable used for formatting and validation of files over 50 MiB. Leave empty to use pwsh (or powershell.exe on Windows)."
+          "description": "PowerShell executable used for formatting and minifying XML documents and for validating files over 50 MiB. Leave empty to use pwsh (or powershell.exe on Windows)."
         },
         "anyxml.validateOnChange": {
           "type": "boolean",

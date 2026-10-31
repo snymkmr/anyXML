@@ -1,10 +1,10 @@
-# AnyXML Tools
+# AnyXML
 
 Format and check XML documents in Visual Studio Code.
 
 ## Requirements
 
-- **PowerShell** is required for formatting and validation of files over 50 MiB. The extension looks for `pwsh` on macOS and Linux, or `powershell.exe` on Windows. If it is installed somewhere else, set `anyxml.powershellExecutable` to its executable path in VS Code Settings.
+- **PowerShell** is required to format or minify XML documents of any size, and to validate files over 50 MiB. The extension looks for `pwsh` on macOS and Linux, or `powershell.exe` on Windows. If it is installed somewhere else, set `anyxml.powershellExecutable` to its executable path in VS Code Settings.
 
 ## Use AnyXML
 
