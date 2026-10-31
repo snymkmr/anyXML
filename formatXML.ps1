@@ -7,6 +7,108 @@ param(
     [switch]$Minify = $false
 )
 
+function Write-XMLTextPreservingLineBreaks {
+    param(
+        [System.Xml.XmlWriter]$writer,
+        [string]$value
+    )
+
+    $segmentStart = 0
+    for ($index = 0; $index -lt $value.Length; $index++) {
+        if ($value[$index] -eq "`r" -or $value[$index] -eq "`n") {
+            if ($index -gt $segmentStart) {
+                $writer.WriteString($value.Substring($segmentStart, $index - $segmentStart))
+            }
+            $writer.WriteCharEntity($value[$index])
+            $segmentStart = $index + 1
+        }
+    }
+
+    if ($segmentStart -lt $value.Length) {
+        $writer.WriteString($value.Substring($segmentStart))
+    }
+}
+
+function Write-XMLReaderToWriter {
+    param(
+        [System.Xml.XmlReader]$reader,
+        [System.Xml.XmlWriter]$writer
+    )
+
+    $elementDepth = 0
+    while ($reader.Read()) {
+        switch ($reader.NodeType.ToString()) {
+            "XmlDeclaration" {
+                if ($reader.Value -match 'standalone\s*=\s*["'']yes["'']') {
+                    $writer.WriteStartDocument($true)
+                } elseif ($reader.Value -match 'standalone\s*=\s*["'']no["'']') {
+                    $writer.WriteStartDocument($false)
+                } else {
+                    $writer.WriteStartDocument()
+                }
+                break
+            }
+            "Element" {
+                $writer.WriteStartElement($reader.Prefix, $reader.LocalName, $reader.NamespaceURI)
+                if ($reader.MoveToFirstAttribute()) {
+                    do {
+                        $writer.WriteStartAttribute($reader.Prefix, $reader.LocalName, $reader.NamespaceURI)
+                        $writer.WriteString($reader.Value)
+                        $writer.WriteEndAttribute()
+                    } while ($reader.MoveToNextAttribute())
+                    $reader.MoveToElement() | Out-Null
+                }
+                if ($reader.IsEmptyElement) {
+                    $writer.WriteEndElement()
+                } else {
+                    $elementDepth++
+                }
+                break
+            }
+            "EndElement" {
+                $writer.WriteFullEndElement()
+                $elementDepth--
+                break
+            }
+            { $_ -in @("Text", "CDATA") } {
+                # CDATA is emitted as ordinary text; character references preserve
+                # line breaks while keeping the serialized XML on one line.
+                Write-XMLTextPreservingLineBreaks -writer $writer -value $reader.Value
+                break
+            }
+            { $_ -in @("Whitespace", "SignificantWhitespace") } {
+                # Ignore document-level whitespace; character references are only
+                # valid inside the document element.
+                if ($elementDepth -gt 0) {
+                    Write-XMLTextPreservingLineBreaks -writer $writer -value $reader.Value
+                }
+                break
+            }
+            "Comment" {
+                $writer.WriteComment($reader.Value)
+                break
+            }
+            "ProcessingInstruction" {
+                $writer.WriteProcessingInstruction($reader.Name, $reader.Value)
+                break
+            }
+            "DocumentType" {
+                $writer.WriteDocType(
+                    $reader.Name,
+                    $reader.GetAttribute("PUBLIC"),
+                    $reader.GetAttribute("SYSTEM"),
+                    $reader.Value
+                )
+                break
+            }
+            "EntityReference" {
+                $writer.WriteEntityRef($reader.Name)
+                break
+            }
+        }
+    }
+}
+
 function Format-XMLContent {
     param(
         [string]$inputFilePath,
@@ -14,18 +116,47 @@ function Format-XMLContent {
         [switch]$Minify
     )
 
-    $xml = New-Object System.Xml.XmlDocument
     if ($Minify) {
-        # Without a DTD or schema, whitespace-only nodes may be meaningful text
-        # between elements. Preserve them so minifying does not change content.
-        $xml.PreserveWhitespace = $true
+        $readerSettings = New-Object System.Xml.XmlReaderSettings
+        $readerSettings.ConformanceLevel = "Document"
+        $readerSettings.IgnoreWhitespace = $false
+
+        $settings = New-Object System.Xml.XmlWriterSettings
+        $settings.Indent = $false
+        $settings.NewLineHandling = [System.Xml.NewLineHandling]::Entitize
+
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $reader = $null
+        $writer = $null
+        try {
+            $reader = [System.Xml.XmlReader]::Create($inputFilePath, $readerSettings)
+            $writer = [System.Xml.XmlWriter]::Create($tempFile, $settings)
+            Write-XMLReaderToWriter -reader $reader -writer $writer
+            $writer.Flush()
+            $writer.Close()
+            $writer = $null
+            return [System.IO.File]::ReadAllText($tempFile, [System.Text.Encoding]::UTF8)
+        }
+        finally {
+            if ($null -ne $reader) {
+                $reader.Dispose()
+            }
+            if ($null -ne $writer) {
+                $writer.Dispose()
+            }
+            if (Test-Path -LiteralPath $tempFile) {
+                Remove-Item -LiteralPath $tempFile -Force
+            }
+        }
     }
+
+    $xml = New-Object System.Xml.XmlDocument
     # Loading the file directly lets the XML parser honor its BOM or declared
     # encoding instead of decoding bytes with PowerShell's default text encoding.
     $xml.Load($inputFilePath)
 
     $settings = New-Object System.Xml.XmlWriterSettings
-    $settings.Indent = -not $Minify
+    $settings.Indent = $true
     $settings.IndentChars = "  "
     $settings.NewLineChars = "`n"
 
@@ -69,6 +200,9 @@ function Format-XMLContentStreaming {
     $writerSettings.Indent = -not $Minify
     $writerSettings.IndentChars = "  "
     $writerSettings.NewLineChars = "`n"
+    if ($Minify) {
+        $writerSettings.NewLineHandling = [System.Xml.NewLineHandling]::Entitize
+    }
     $writerSettings.Encoding = [System.Text.UTF8Encoding]::new($false)
 
     $reader = $null
@@ -77,7 +211,9 @@ function Format-XMLContentStreaming {
         $reader = [System.Xml.XmlReader]::Create($inputFilePath, $readerSettings)
         $writer = [System.Xml.XmlWriter]::Create($outputFilePath, $writerSettings)
 
-        if ($reader.Read()) {
+        if ($Minify) {
+            Write-XMLReaderToWriter -reader $reader -writer $writer
+        } elseif ($reader.Read()) {
             do {
                 # WriteNode advances the reader to the next sibling, so do not call Read() again here.
                 $writer.WriteNode($reader, $false)

@@ -413,7 +413,7 @@ function runPowerShell(
 
   return new Promise((resolve, reject) => {
     let stderr = "";
-    const child = spawn(executable, args, { windowsHide: true });
+    const child = spawn(executable, args, getPowerShellSpawnOptions());
 
     child.stderr?.setEncoding("utf8");
     child.stderr?.on("data", (chunk: string) => {
@@ -447,7 +447,7 @@ function validateLargeXmlFile(scriptPath: string, uri: vscode.Uri): Promise<Larg
   return new Promise((resolve, reject) => {
     let stdout = "";
     let stderr = "";
-    const child = spawn(executable, args, { windowsHide: true });
+    const child = spawn(executable, args, getPowerShellSpawnOptions());
 
     child.stdout?.setEncoding("utf8");
     child.stdout?.on("data", (chunk: string) => {
@@ -487,6 +487,14 @@ function getPowerShellExecutable(): string {
     .get<string>("powershellExecutable", "")
     .trim();
   return configuredExecutable || (process.platform === "win32" ? "powershell.exe" : "pwsh");
+}
+
+function getPowerShellSpawnOptions(): { windowsHide: true; env: NodeJS.ProcessEnv } {
+  const env = { ...process.env };
+  if (process.platform === "darwin") {
+    env.COMPlus_UseProfileOptimization ??= "0";
+  }
+  return { windowsHide: true, env };
 }
 
 function powerShellError(error: unknown): Error {
