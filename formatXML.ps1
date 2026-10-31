@@ -14,7 +14,15 @@ function Format-XMLContent {
         [switch]$Minify
     )
 
-    $xml = [xml]$xmlString
+    if ($Minify) {
+        # Without a DTD or schema, whitespace-only nodes may be meaningful text
+        # between elements. Preserve them so minifying does not change content.
+        $xml = New-Object System.Xml.XmlDocument
+        $xml.PreserveWhitespace = $true
+        $xml.LoadXml($xmlString)
+    } else {
+        $xml = [xml]$xmlString
+    }
 
     $settings = New-Object System.Xml.XmlWriterSettings
     $settings.Indent = -not $Minify
@@ -52,7 +60,9 @@ function Format-XMLContentStreaming {
 
     $readerSettings = New-Object System.Xml.XmlReaderSettings
     $readerSettings.ConformanceLevel = "Document"
-    $readerSettings.IgnoreWhitespace = [bool]$Minify
+    # XML alone cannot distinguish formatting whitespace from meaningful text.
+    # Keep whitespace nodes in minify mode to preserve the document's content.
+    $readerSettings.IgnoreWhitespace = $false
 
     $writerSettings = New-Object System.Xml.XmlWriterSettings
     $writerSettings.ConformanceLevel = [System.Xml.ConformanceLevel]::Document

@@ -11,7 +11,7 @@ Format and check XML documents in Visual Studio Code.
 For regular XML files, either right-click in the editor or right-click the file in Explorer. Choose:
 
 - **AnyXML: Format XML Document** to format the document. Large file conversions use streaming mode.
-- **AnyXML: Minify XML Document** to remove formatting whitespace and compact the document. For a regular open document, this replaces its contents; use Undo to reverse it.
+- **AnyXML: Minify XML Document** to serialize without adding indentation while preserving source whitespace that may be part of the text content. Without a DTD or schema, XML does not reliably distinguish meaningful whitespace from formatting whitespace. For a regular open document, this replaces its contents; use Undo to reverse it.
 - **AnyXML: Validate XML** to check that the document is well-formed. The first syntax error appears in the Problems panel.
 
 ### Large files
